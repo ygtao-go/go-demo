@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  go-admin:
+    build: .
+    ports:
+      - "8080:8080"
+    restart: always
+    container_name: go-admin
+    networks:
+      - go-network
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: go_admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - go-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    networks:
+      - go-network
+
+networks:
+  go-network:
+
+volumes:
+  mysql-data:

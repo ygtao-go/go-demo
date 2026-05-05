@@ -1,0 +1,27 @@
+# 编译输出
+main
+main.exe
+
+# 环境配置
+.env
+config.yaml
+config.yml
+
+# 日志
+*.log
+
+# 上传文件
+uploads/
+upload/
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 依赖
+vendor/
+
+# 临时文件
+tmp/
+temp/
