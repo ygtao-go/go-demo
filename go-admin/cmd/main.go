@@ -5,10 +5,24 @@ import (
 	"go-admin/middleware"
 	"go-admin/router"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
+func init() {
+	// 本地开发加载 .env
+	// 服务器上不会加载 .env，而是用 docker -e 传入的环境变量
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("加载 .env 文件失败")
+		} else {
+			log.Println("✅ 成功加载本地 .env 配置")
+		}
+	}
+}
 func main() {
 
 	// 1. 初始化MySQL

@@ -6,7 +6,7 @@ COPY . .
 
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN go mod download
-RUN go build -o go-admin main.go
+RUN go build -o go-admin ./cmd/main.go
 
 EXPOSE 8080
 

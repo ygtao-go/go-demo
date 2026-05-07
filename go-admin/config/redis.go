@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -15,11 +16,14 @@ var (
 
 // InitRedis 初始化Redis连接（全局只调用一次）
 func InitRedis() {
-	// 用你Linux服务器的IP和端口，完全保留你的配置
+	// 从环境变量读取Redis配置
+	addr := os.Getenv("REDIS_ADDR")     // 例如 172.19.39.114:6379
+	password := os.Getenv("REDIS_PASS") // Redis密码，如果没密码留空
+
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379", // 你的Linux Redis地址，不用改
-		Password: "",               // 无密码留空，有密码填这里
-		DB:       0,                // 默认用DB 0
+		Addr:     addr,
+		Password: password,
+		DB:       0, // 默认用DB 0
 	})
 
 	// 测试连接是否成功
