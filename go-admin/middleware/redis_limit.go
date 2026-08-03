@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"go-admin/config"
 	"go-admin/pkg/response"
@@ -21,7 +22,9 @@ func RedisLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		rdb := config.RedisClient
-		ctx := c.Request.Context()
+		// 请求级上下文 + 显式超时：Redis 异常时不会无限等待
+		ctx, cancel := context.WithTimeout(c.Request.Context(), config.RedisRequestTimeout)
+		defer cancel()
 
 		// ========================
 		// 1. 构建唯一 key
@@ -35,8 +38,8 @@ func RedisLimit() gin.HandlerFunc {
 			keyPrefix = fmt.Sprintf("user:%v", userId)
 		}
 
-		// 拼接接口路径（细粒度控制）
-		key := fmt.Sprintf("limit:%s:%s", keyPrefix, c.FullPath())
+		// 拼接接口路径（细粒度控制），统一走环境前缀
+		key := config.RedisKey("limit", keyPrefix, c.FullPath())
 
 		// ========================
 		// 2. 原子计数

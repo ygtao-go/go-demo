@@ -2,7 +2,9 @@ package main
 
 import (
 	"go-admin/config"
+	_ "go-admin/docs"
 	"go-admin/middleware"
+	"go-admin/pkg/metrics"
 	"go-admin/router"
 	"log"
 	"os"
@@ -23,6 +25,26 @@ func init() {
 		}
 	}
 }
+
+// @title go-admin API
+// @version 1.0
+// @description go-admin 后台管理系统 API（Go + Gin + GORM + Redis + JWT），内置 AI 代码助手模块。
+// @description 统一响应信封：{"code": <int>, "msg": <string>, "data": <any|null>}；code=0 表示成功（AI 模块为 200）。
+// @description 需鉴权接口请在 Authorize 中填写：Bearer <accessToken>。
+
+// @contact.name go-admin
+// @contact.url http://localhost:8080
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT Bearer 认证，填写格式：Bearer <accessToken>（登录/刷新接口返回）
 func main() {
 
 	// 1. 初始化MySQL
@@ -32,6 +54,12 @@ func main() {
 	config.InitRedis()
 
 	r := gin.Default()
+
+	// ========== 可观测性：请求 ID（必须最外层，供 Logger / Recovery / 链路追踪使用） ==========
+	r.Use(middleware.RequestID())
+
+	// ========== 可观测性：Prometheus HTTP 指标（注册在 Recovery 之前，panic 恢复为 500 后仍会统计） ==========
+	r.Use(metrics.Metrics())
 
 	r.Use(middleware.Logger())
 

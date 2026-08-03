@@ -1,0 +1,168 @@
+# ============================================================
+# go-admin CI —— GitHub Actions
+#
+# 触发：push / pull_request（所有分支）
+#
+# 三个 Job：
+#   1. go-ci        Go 质量门禁
+#      go version → go mod download → go test ./... → go vet ./... → go build ./...
+#      内置 MySQL + Redis 服务容器，让接口自动化测试真正执行（而非跳过）
+#   2. docker-build 使用仓库已有多阶段 Dockerfile 构建镜像（不改业务代码）
+#   3. security     安全门禁：.env / API Key / 数据库密码 不得入库
+#
+# 安全约定：
+#   - .env 已被 .gitignore 排除，禁止提交
+#   - 敏感配置（AI_API_KEY / DB_PASSWORD / REDIS_PASSWORD / JWT_*）只允许
+#     通过环境变量 / GitHub Secrets 注入，仓库内仅允许 ${VAR:-default} 占位形式
+# ============================================================
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# 同一分支的新提交自动取消旧的在跑 job，节省资源
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ==========================================================
+  # Job 1: Go 质量门禁（test / vet / build）
+  # ==========================================================
+  go-ci:
+    name: Go test / vet / build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go-admin
+    services:
+      # 接口自动化测试依赖的真实 MySQL 8.0（测试使用隔离 schema go_admin_test）
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "123456"
+          MYSQL_DATABASE: go_admin
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -p123456 --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      # 接口自动化测试依赖的真实 Redis（测试使用独立 key 前缀 test）
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping | grep PONG"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go-admin/go.mod
+          cache-dependency-path: go-admin/go.sum
+
+      - name: Go version
+        run: go version
+
+      - name: Download dependencies
+        run: go mod download
+
+      # 测试环境变量指向 CI 内置服务容器；覆盖 .env（CI 中不存在 .env）
+      - name: Test
+        run: go test ./...
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_USER: root
+          DB_PASSWORD: "123456"
+          DB_NAME: go_admin
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: "6379"
+          REDIS_PASSWORD: ""
+          REDIS_PREFIX: ""
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+  # ==========================================================
+  # Job 2: Docker 镜像构建（复用已有多阶段 Dockerfile）
+  # ==========================================================
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./go-admin
+          file: ./go-admin/Dockerfile
+          push: false
+          tags: go-admin:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==========================================================
+  # Job 3: 安全门禁（.env / API Key / 数据库密码 不得入库）
+  # ==========================================================
+  security:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check no .env / secrets are committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+
+          echo "== [1/3] .env 不得被 git 跟踪 =="
+          if git ls-files | grep -E '(^|/)\.env($|\.)'; then
+            echo "::error::检测到 .env 被 git 跟踪，禁止提交凭据！"
+            exit 1
+          fi
+          if find . -maxdepth 2 -name '.env' | grep -q .; then
+            echo "::error::检出工作区存在 .env 文件（应被 .gitignore 排除）"
+            exit 1
+          fi
+          echo "OK: 无 .env"
+
+          echo "== [2/3] 私钥 / 强特征密钥指纹 =="
+          if grep -rnI --exclude-dir=.git -E \
+              '(BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[0-9A-Za-z]{36}|sk_live_[0-9a-zA-Z]{16,})' . ; then
+            echo "::error::检测到疑似私钥或密钥指纹"
+            exit 1
+          fi
+          echo "OK: 无私钥/密钥指纹"
+
+          echo "== [3/3] 敏感配置项非占位真实值 =="
+          # 使用 PCRE 负向断言 (?<!{)：排除 ${VAR:-default} 占位符内部文本（如 JWT_ACCESS_SECRET:-...）
+          if grep -rnI --exclude-dir=.git -P \
+              '(?<!{)(AI_API_KEY|AI_ENDPOINT|DB_PASSWORD|REDIS_PASSWORD|JWT_ACCESS_SECRET|JWT_REFRESH_SECRET)[=:]\s*["'"'"']?[^"'"'"'$\s]{16,}' . ; then
+            echo "::error::检测到疑似 API Key / 数据库密码 / JWT 密钥 真实值"
+            exit 1
+          fi
+          echo "OK: 无真实敏感值"
+          echo "== 安全门禁通过 =="

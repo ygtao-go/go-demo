@@ -1,0 +1,680 @@
+basePath: /api
+definitions:
+  go-admin_internal_dto.AIResult:
+    properties:
+      code:
+        description: 业务码：200=成功
+        type: integer
+      data:
+        description: AI 返回文本（生成的代码 / 解释 / 修复 / 优化结果）
+        type: string
+      msg:
+        description: 提示信息
+        type: string
+    type: object
+  go-admin_internal_dto.CodeReq:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  go-admin_internal_dto.EditUserReq:
+    properties:
+      status:
+        type: integer
+      username:
+        type: string
+    type: object
+  go-admin_internal_dto.GenerateCodeReq:
+    properties:
+      prompt:
+        type: string
+    required:
+    - prompt
+    type: object
+  go-admin_internal_dto.LoginReq:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  go-admin_internal_dto.LogoutReq:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  go-admin_internal_dto.RefreshReq:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  go-admin_internal_dto.RegisterReq:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  go-admin_internal_dto.StringResult:
+    properties:
+      code:
+        description: 业务码：0=成功
+        type: integer
+      data:
+        description: 成功提示文本
+        type: string
+      msg:
+        description: 提示信息
+        type: string
+    type: object
+  go-admin_internal_dto.SwitchStatusReq:
+    properties:
+      status:
+        type: integer
+    required:
+    - status
+    type: object
+  go-admin_internal_dto.TokenData:
+    properties:
+      accessJTI:
+        description: Access Token 的 JTI（撤销用）
+        type: string
+      accessToken:
+        description: 访问令牌（15 分钟有效）
+        type: string
+      refreshJTI:
+        description: Refresh Token 的 JTI（旋转用）
+        type: string
+      refreshToken:
+        description: 刷新令牌（7 天有效）
+        type: string
+    type: object
+  go-admin_internal_dto.TokenResult:
+    properties:
+      code:
+        description: 业务码：0=成功
+        type: integer
+      data:
+        allOf:
+        - $ref: '#/definitions/go-admin_internal_dto.TokenData'
+        description: 双 Token 数据
+      msg:
+        description: 提示信息
+        type: string
+    type: object
+  go-admin_internal_dto.UpdatePasswordReq:
+    properties:
+      newPassword:
+        type: string
+      oldPassword:
+        type: string
+    required:
+    - newPassword
+    - oldPassword
+    type: object
+  go-admin_internal_dto.UserListData:
+    properties:
+      list:
+        description: 用户列表
+        items:
+          $ref: '#/definitions/model.User'
+        type: array
+      total:
+        description: 总记录数
+        type: integer
+    type: object
+  go-admin_internal_dto.UserListResult:
+    properties:
+      code:
+        description: 业务码：0=成功
+        type: integer
+      data:
+        allOf:
+        - $ref: '#/definitions/go-admin_internal_dto.UserListData'
+        description: 列表数据
+      msg:
+        description: 提示信息
+        type: string
+    type: object
+  go-admin_internal_dto.UserResult:
+    properties:
+      code:
+        description: 业务码：0=成功
+        type: integer
+      data:
+        allOf:
+        - $ref: '#/definitions/model.User'
+        description: 用户详情
+      msg:
+        description: 提示信息
+        type: string
+    type: object
+  go-admin_pkg_response.Result:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      status:
+        description: 1=正常 2=禁用
+        type: integer
+      updated_at:
+        type: string
+      username:
+        maxLength: 20
+        minLength: 2
+        type: string
+    required:
+    - username
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: go-admin
+    url: http://localhost:8080
+  description: |-
+    go-admin 后台管理系统 API（Go + Gin + GORM + Redis + JWT），内置 AI 代码助手模块。
+    统一响应信封：{"code": <int>, "msg": <string>, "data": <any|null>}；code=0 表示成功（AI 模块为 200）。
+    需鉴权接口请在 Authorize 中填写：Bearer <accessToken>。
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: go-admin API
+  version: "1.0"
+paths:
+  /ai/explain:
+    post:
+      consumes:
+      - application/json
+      description: 解释给定代码的含义与逻辑（业务码固定 200）
+      parameters:
+      - description: 解释代码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.CodeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 解释成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.AIResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: AI 服务异常
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: AI 解释代码
+      tags:
+      - AI
+  /ai/fix:
+    post:
+      consumes:
+      - application/json
+      description: 修复给定代码中的错误（业务码固定 200）
+      parameters:
+      - description: 修复代码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.CodeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修复成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.AIResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: AI 服务异常
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: AI 修复代码
+      tags:
+      - AI
+  /ai/generate:
+    post:
+      consumes:
+      - application/json
+      description: 根据需求描述生成代码（业务码固定 200，兼容 web 前端判断）
+      parameters:
+      - description: 生成代码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.GenerateCodeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 生成成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.AIResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: AI 服务异常
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: AI 生成代码
+      tags:
+      - AI
+  /ai/optimize:
+    post:
+      consumes:
+      - application/json
+      description: 优化给定代码，使其更简洁高效（业务码固定 200）
+      parameters:
+      - description: 优化代码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.CodeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 优化成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.AIResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: AI 服务异常
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: AI 优化代码
+      tags:
+      - AI
+  /user:
+    get:
+      consumes:
+      - application/json
+      description: 分页查询用户列表（page ≤0 时按 1；pageSize ≤0 或 >100 时按 10）
+      parameters:
+      - default: 1
+        description: 页码（默认 1）
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页条数（默认 10，最大 100）
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户列表
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.UserListResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 用户列表
+      tags:
+      - 用户
+  /user/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除用户数据 + 用户缓存 + 该用户全部 refresh token 索引（需登录）
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误或用户不存在
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: 删除失败
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 删除用户
+      tags:
+      - 用户
+    put:
+      consumes:
+      - application/json
+      description: 更新用户用户名 / 状态（字段为空或 0 时不更新）；改名会同步刷新缓存
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 编辑请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.EditUserReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误或用户不存在
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 编辑用户
+      tags:
+      - 用户
+  /user/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: 切换用户状态：1=正常，2=禁用（其它值返回 400）
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态切换请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.SwitchStatusReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 状态更新成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误或状态值无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 切换用户状态
+      tags:
+      - 用户
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: 返回当前登录用户详情（password 字段不会出现在任何响应中）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.UserResult'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 获取用户信息
+      tags:
+      - 用户
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: 登录成功返回双 Token（accessToken 15 分钟有效，refreshToken 7 天有效）
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.TokenResult'
+        "400":
+          description: 参数错误或用户名/密码错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      summary: 用户登录
+      tags:
+      - 用户
+  /user/logout:
+    post:
+      consumes:
+      - application/json
+      description: 撤销 accessToken（JTI 黑名单，TTL=剩余有效期）与 refreshToken（双向索引删除 + 7 天黑名单）；accessToken
+        从请求头获取
+      parameters:
+      - description: 退出请求（refreshToken 必填）
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.LogoutReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 退出成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "500":
+          description: 退出失败
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 退出登录
+      tags:
+      - 用户
+  /user/password:
+    put:
+      consumes:
+      - application/json
+      description: 校验旧密码后更新为新密码，成功后删除用户缓存（需登录）
+      parameters:
+      - description: 修改密码请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.UpdatePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误或旧密码错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: 未登录或 token 无效
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      security:
+      - BearerAuth: []
+      summary: 修改密码
+      tags:
+      - 用户
+  /user/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 使用 refreshToken 换取全新的双 Token；旧 refreshToken 原子消费作废，并发刷新同一 refreshToken
+        仅一个成功
+      parameters:
+      - description: 刷新请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.RefreshReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功（返回全新双 Token）
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.TokenResult'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+        "401":
+          description: refresh token 无效、已过期或已被消费
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      summary: 刷新 Token
+      tags:
+      - 用户
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: 注册新用户（用户名 2~20 位，密码 6~20 位），成功后清除该用户名的"不存在"缓存
+      parameters:
+      - description: 注册请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-admin_internal_dto.RegisterReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功
+          schema:
+            $ref: '#/definitions/go-admin_internal_dto.StringResult'
+        "400":
+          description: 参数错误或用户名已存在
+          schema:
+            $ref: '#/definitions/go-admin_pkg_response.Result'
+      summary: 用户注册
+      tags:
+      - 用户
+securityDefinitions:
+  BearerAuth:
+    description: JWT Bearer 认证，填写格式：Bearer <accessToken>（登录/刷新接口返回）
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

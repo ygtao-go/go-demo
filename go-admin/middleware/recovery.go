@@ -10,6 +10,7 @@ import (
 )
 
 // Recovery 全局异常捕获中间件（工程级版本）
+// 错误记录：request_id | error | method/path | client_ip | stack trace
 func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -20,8 +21,10 @@ func Recovery() gin.HandlerFunc {
 				// 1. 打印错误日志（后端日志）
 				// ========================
 				fmt.Printf("\n===== PANIC RECOVER =====\n")
+				fmt.Printf("request_id: %s\n", GetRequestID(c))
 				fmt.Printf("error: %v\n", err)
 				fmt.Printf("path: %s %s\n", c.Request.Method, c.Request.URL.Path)
+				fmt.Printf("client_ip: %s\n", c.ClientIP())
 				fmt.Printf("stack:\n%s\n", debug.Stack())
 				fmt.Printf("=========================\n\n")
 

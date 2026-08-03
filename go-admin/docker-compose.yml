@@ -1,39 +1,122 @@
-version: '3'
-
 services:
+  # ============ go-admin 应用服务 ============
   go-admin:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: go-admin:latest
+    container_name: go-admin
+    restart: always
     ports:
       - "8080:8080"
-    restart: always
-    container_name: go-admin
+    environment:
+      # 运行环境：dev=允许 Redis 无密码 / prod=强制 Redis 密码非空（否则启动失败）
+      ENV: ${ENV:-dev}
+      GIN_MODE: ${GIN_MODE:-release}
+      # ===== MySQL（默认指向 compose 网络内的 mysql 服务） =====
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_NAME: ${DB_NAME:-go_admin}
+      # ===== Redis（默认指向 compose 网络内的 redis 服务） =====
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PREFIX: ${REDIS_PREFIX:-}
+      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE:-20}
+      REDIS_MIN_IDLE_CONNS: ${REDIS_MIN_IDLE_CONNS:-5}
+      REDIS_TLS_ENABLE: ${REDIS_TLS_ENABLE:-false}
+      # ===== AI（豆包 / 火山方舟；生产必须通过环境变量注入真实 Key，严禁硬编码） =====
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_ENDPOINT: ${AI_ENDPOINT:-}
+      AI_URL: ${AI_URL:-https://ark.cn-beijing.volces.com/api/v3/chat/completions}
+      AI_TIMEOUT: ${AI_TIMEOUT:-30}
+      # ===== JWT 密钥（生产务必覆盖默认值） =====
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-GoAdminAccessSecret2026}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-GoAdminRefreshSecret2026}
+      # ===== 时区（DSN loc=Local 依赖 tzdata + TZ） =====
+      TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # busybox nc 端口探测：确认 HTTP 服务已在 8080 监听
+      test: ["CMD-SHELL", "nc -w 3 127.0.0.1 8080 < /dev/null > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     networks:
       - go-network
-    depends_on:
-      - mysql
-      - redis
 
+  # ============ MySQL 8.0 ============
   mysql:
     image: mysql:8.0
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: go_admin
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${DB_NAME:-go_admin}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      # mysqladmin ping：mysqld 可接受连接时返回 0
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - go-network
 
+  # ============ Redis（AOF 持久化，可选 requirepass） ============
   redis:
     image: redis:alpine
     container_name: redis
     restart: always
+    environment:
+      # 与 go-admin 服务保持一致；为空 = 无认证（仅限开发），生产必须设置强密码
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+        else
+          exec redis-server --appendonly yes;
+        fi
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG;
+          else
+            redis-cli ping | grep -q PONG;
+          fi
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     networks:
       - go-network
 
 networks:
   go-network:
+    driver: bridge
 
 volumes:
   mysql-data:
+  redis-data:
