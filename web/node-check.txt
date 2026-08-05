@@ -1,3 +1,0 @@
-D:\node.js\node.exe
-D:\node.js\npm
-D:\node.js\npm.cmd
