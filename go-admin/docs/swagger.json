@@ -187,6 +187,60 @@
                 }
             }
         },
+        "/ai/generate/stream": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "AI SSE Streaming API：根据需求描述流式生成代码；SSE 事件格式为 data: {\"content\":\"<chunk>\"}，每次输出后立即 Flush，流结束发送 data: [DONE]",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI 生成代码（SSE 流式输出）",
+                "parameters": [
+                    {
+                        "description": "生成代码请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_internal_dto.GenerateCodeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE 流（text/event-stream）"
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_pkg_response.Result"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_pkg_response.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "AI 服务异常",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_pkg_response.Result"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/optimize": {
             "post": {
                 "security": [
@@ -237,6 +291,46 @@
                     },
                     "500": {
                         "description": "AI 服务异常",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_pkg_response.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/dashboard/statistics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "返回用户总数、AI 调用/失败次数、HTTP 请求/错误次数；用户数来自 MySQL users 表，业务计数来自 Redis dashboard:* 计数器",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "获取 Dashboard 统计数据",
+                "responses": {
+                    "200": {
+                        "description": "统计成功",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_internal_dto.DashboardResult"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效",
+                        "schema": {
+                            "$ref": "#/definitions/go-admin_pkg_response.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "统计数据获取失败",
                         "schema": {
                             "$ref": "#/definitions/go-admin_pkg_response.Result"
                         }
@@ -776,6 +870,52 @@
             "properties": {
                 "code": {
                     "type": "string"
+                }
+            }
+        },
+        "go-admin_internal_dto.DashboardResult": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "业务码：0=成功",
+                    "type": "integer"
+                },
+                "data": {
+                    "description": "统计数据",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/go-admin_internal_dto.DashboardStatistics"
+                        }
+                    ]
+                },
+                "msg": {
+                    "description": "提示信息",
+                    "type": "string"
+                }
+            }
+        },
+        "go-admin_internal_dto.DashboardStatistics": {
+            "type": "object",
+            "properties": {
+                "aiCallCount": {
+                    "description": "AI 调用次数（成功）",
+                    "type": "integer"
+                },
+                "aiErrorCount": {
+                    "description": "AI 调用失败次数",
+                    "type": "integer"
+                },
+                "errorCount": {
+                    "description": "接口错误次数（status \u003e= 400）",
+                    "type": "integer"
+                },
+                "requestCount": {
+                    "description": "接口请求次数",
+                    "type": "integer"
+                },
+                "userCount": {
+                    "description": "用户数量",
+                    "type": "integer"
                 }
             }
         },

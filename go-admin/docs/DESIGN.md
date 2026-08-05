@@ -157,18 +157,19 @@ repository/ai_repository.go ← AI Provider 唯一入口（HTTP 调用全流程�
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
 | `AI_API_KEY` | 无（必填） | 豆包 API Key，生产必须注入，严禁硬编码 |
-| `AI_ENDPOINT` | 无 | 火山方舟接入点 ID（作为请求体 `model`） |
+| `AI_ENDPOINT` | 无 | 火山方舟接入点 ID |
+| `AI_MODEL` | 无（回退 `AI_ENDPOINT`） | 请求体 `model` 字段，优先于 `AI_ENDPOINT` |
 | `AI_URL` | `https://ark.cn-beijing.volces.com/api/v3/chat/completions` | API 地址 |
-| `AI_TIMEOUT` | 30 | 请求超时（秒） |
+| `AI_TIMEOUT` | 120 | 请求超时（秒） |
 
 配置采用 **`sync.Once` 懒加载 + 幂等**：`InitAI()` 可并发安全多次调用，且在 `main()` 的 `godotenv.Load()` 之后读取，确保本地 `.env` 生效。
 
 ### 3.3 调用流程（`CallLLM`）
 
 ```
-① 读取 AI 配置（APIKey / Endpoint / URL / Timeout）
+① 读取 AI 配置（APIKey / Model / URL / Timeout）
 ② 构造 Chat Completions 请求体：
-     model = AI_ENDPOINT
+     model = AI_MODEL（未配置时回退 AI_ENDPOINT）
      messages = [ {system: 代码学习助手提示词}, {user: prompt} ]
      temperature = 0.3（低温度，代码输出更稳定）
 ③ json.Marshal → http.NewRequestWithContext（context.WithTimeout）

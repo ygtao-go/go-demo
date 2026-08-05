@@ -56,7 +56,7 @@
 |------|----------|------------------------|
 | MySQL | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `${DB_HOST:-mysql}` 等，默认指向 compose 网络内 `mysql` |
 | Redis | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` / `REDIS_PREFIX` / `REDIS_POOL_SIZE` / `REDIS_MIN_IDLE_CONNS` / `REDIS_TLS_ENABLE` | `${REDIS_HOST:-redis}` 等 |
-| AI | `AI_API_KEY` / `AI_ENDPOINT` / `AI_URL` / `AI_TIMEOUT` | `${AI_API_KEY:-}`，生产通过 `.env` 或宿主环境注入真实 Key |
+| AI | `AI_API_KEY` / `AI_ENDPOINT` / `AI_MODEL` / `AI_URL` / `AI_TIMEOUT` | `${AI_API_KEY:-}`，生产通过 `.env` 或宿主环境注入真实 Key |
 | JWT | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | 生产务必覆盖默认值 |
 | 运行 | `ENV`（dev/prod）/ `GIN_MODE` / `TZ` | `${ENV:-dev}` 等 |
 

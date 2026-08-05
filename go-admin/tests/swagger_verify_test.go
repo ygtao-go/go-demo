@@ -13,7 +13,7 @@ import (
 )
 
 // TestSwaggerEndpoints 运行时验证 /swagger/* 路由：UI 与 doc.json 均返回 200，
-// 且 doc.json 中包含全部 14 个业务接口。
+// 且 doc.json 中包含全部 15 个业务接口。
 func TestSwaggerEndpoints(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -43,7 +43,8 @@ func TestSwaggerEndpoints(t *testing.T) {
 		"/user/register", "/user/login", "/user/refresh",
 		"/user/info", "/user/logout", "/user/password",
 		"/user", "/user/{id}", "/user/{id}/status",
-		"/ai/generate", "/ai/explain", "/ai/fix", "/ai/optimize",
+		"/ai/generate", "/ai/generate/stream", "/ai/explain", "/ai/fix", "/ai/optimize",
+		"/dashboard/statistics",
 	}
 	for _, p := range wantPaths {
 		if _, ok := doc.Paths[p]; !ok {

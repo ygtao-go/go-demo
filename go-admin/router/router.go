@@ -1,6 +1,7 @@
 package router
 
 import (
+	"go-admin/config"
 	"go-admin/internal/handler"
 	"go-admin/middleware"
 	"go-admin/pkg/metrics"
@@ -27,6 +28,11 @@ func InitRouter(r *gin.Engine) {
 		public.POST("/user/register", handler.Register)
 		public.POST("/user/login", handler.Login)
 		public.POST("/user/refresh", handler.RefreshToken)
+
+		// AI 网络诊断测试接口（默认开启；公网生产环境可设 ENABLE_AI_NET_DEBUG=false 关闭）
+		if config.EnableAINetDebug() {
+			public.GET("/ai/debug/network", handler.DebugNetwork)
+		}
 	}
 
 	// ===== 私有接口（需要 JWT） =====
@@ -50,9 +56,16 @@ func InitRouter(r *gin.Engine) {
 		ai := auth.Group("/ai")
 		{
 			ai.POST("/generate", handler.GenerateCode)
+			ai.POST("/generate/stream", handler.GenerateStream) // SSE 流式输出
 			ai.POST("/explain", handler.ExplainCode)
 			ai.POST("/fix", handler.FixCode)
 			ai.POST("/optimize", handler.OptimizeCode)
+		}
+
+		// Dashboard 模块（数据看板统计）
+		dashboard := auth.Group("/dashboard")
+		{
+			dashboard.GET("/statistics", handler.GetDashboardStatistics)
 		}
 	}
 }

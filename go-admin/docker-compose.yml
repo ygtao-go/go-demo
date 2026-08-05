@@ -31,8 +31,9 @@ services:
       # ===== AI（豆包 / 火山方舟；生产必须通过环境变量注入真实 Key，严禁硬编码） =====
       AI_API_KEY: ${AI_API_KEY:-}
       AI_ENDPOINT: ${AI_ENDPOINT:-}
+      AI_MODEL: ${AI_MODEL:-}
       AI_URL: ${AI_URL:-https://ark.cn-beijing.volces.com/api/v3/chat/completions}
-      AI_TIMEOUT: ${AI_TIMEOUT:-30}
+      AI_TIMEOUT: ${AI_TIMEOUT:-120}
       # ===== JWT 密钥（生产务必覆盖默认值） =====
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-GoAdminAccessSecret2026}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-GoAdminRefreshSecret2026}

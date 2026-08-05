@@ -342,7 +342,8 @@ swag init -g cmd/main.go -o docs --parseDependency --parseInternal
 | `REDIS_DB` / `REDIS_POOL_SIZE` / `REDIS_MIN_IDLE_CONNS` | 否 | `0` / `20` / `5` | Redis 逻辑库与连接池 |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | 否 | 内置默认值 | 生产务必覆盖为强随机值 |
 | `AI_API_KEY` / `AI_ENDPOINT` | 是（使用 AI 时） | — | 豆包 API Key 与接入点 ID，严禁硬编码 |
-| `AI_URL` / `AI_TIMEOUT` | 否 | 火山方舟地址 / 30 | AI 接口地址与超时（秒） |
+| `AI_MODEL` | 否 | 同 `AI_ENDPOINT` | 请求体 `model` 字段，未配置时回退到 `AI_ENDPOINT` |
+| `AI_URL` / `AI_TIMEOUT` | 否 | 火山方舟地址 / 120 | AI 接口地址与超时（秒） |
 
    │
    ▼

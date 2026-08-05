@@ -225,6 +225,43 @@ POST /api/ai/optimize
 
 请求体：`code`（string，必填）。响应结构同 3.8。
 
+### 3.12 Dashboard 数据看板统计
+
+```
+GET /api/dashboard/statistics
+```
+
+无需请求体。响应 `data` 为 `DashboardStatistics`（字段类型与 `go-admin/internal/dto/dashboard.go` 完全一致）：
+
+| 字段 | 类型 | 说明 | 数据来源 |
+|------|------|------|----------|
+| `userCount` | number | 用户数量 | MySQL `users` 表 `COUNT(*)` |
+| `aiCallCount` | number | AI 调用次数（成功） | Redis `dashboard:ai_calls` |
+| `aiErrorCount` | number | AI 调用失败次数 | Redis `dashboard:ai_errors` |
+| `requestCount` | number | 接口请求次数 | Redis `dashboard:http_requests` |
+| `errorCount` | number | 接口错误次数（status >= 400） | Redis `dashboard:http_errors` |
+
+计数写入说明（**保留原有 Prometheus 指标，额外同步 Redis**）：
+
+- AI 调用：`repository.CallLLM` 成功 → `dashboard:ai_calls +1`；失败 → `dashboard:ai_errors +1`；
+- HTTP 请求：`middleware.Logger` 每请求 → `dashboard:http_requests +1`，`status >= 400` 时额外 `dashboard:http_errors +1`（`/metrics` 自身不计入）。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "userCount": 0,
+    "aiCallCount": 0,
+    "aiErrorCount": 0,
+    "requestCount": 0,
+    "errorCount": 0
+  }
+}
+```
+
 ## 4. 请求 DTO 字段汇总
 
 | DTO | 字段 | 校验 |
@@ -272,4 +309,7 @@ curl -s -X POST $BASE/api/user/refresh -H 'Content-Type: application/json' \
 # 5) AI 代码解释（需要 AI_API_KEY / AI_ENDPOINT 已配置）
 curl -s -X POST $BASE/api/ai/explain -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $TOKEN" -d '{"code":"fmt.Println(\"hi\")"}'
+
+# 6) Dashboard 数据看板统计
+curl -s $BASE/api/dashboard/statistics -H "Authorization: Bearer $TOKEN"
 ```

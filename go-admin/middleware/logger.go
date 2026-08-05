@@ -4,7 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"net/http"
 	"time"
+
+	"go-admin/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )
@@ -60,6 +64,25 @@ func Logger() gin.HandlerFunc {
 		// 执行后续中间件/接口
 		c.Next()
 
+		// ========================
+		// 业务统计同步：Dashboard Redis 计数器（保留 Prometheus 指标，额外写 Redis）
+		//   - dashboard:http_requests +1（每个请求）
+		//   - dashboard:http_errors   +1（status >= 400）
+		// 与 pkg/metrics 保持一致：/metrics 自身不计入，避免监控轮询污染业务数据；
+		// 计数失败仅记录日志，不影响请求主流程。
+		// ========================
+		status := c.Writer.Status()
+		if c.Request.URL.Path != "/metrics" {
+			if err := repository.IncrDashboardCounter(repository.DashboardMetricHTTPRequests); err != nil {
+				log.Printf("Dashboard 请求计数写入失败 path=%s err=%v", c.Request.URL.Path, err)
+			}
+			if status >= http.StatusBadRequest {
+				if err := repository.IncrDashboardCounter(repository.DashboardMetricHTTPErrors); err != nil {
+					log.Printf("Dashboard 错误计数写入失败 path=%s status=%d err=%v", c.Request.URL.Path, status, err)
+				}
+			}
+		}
+
 		// 打印日志（含 request_id / status / latency / client_ip）
 		fmt.Printf(
 			"[%s] request_id=%s client_ip=%s method=%s path=%s status=%d latency=%v\n",
@@ -68,7 +91,7 @@ func Logger() gin.HandlerFunc {
 			c.ClientIP(),
 			c.Request.Method,
 			c.Request.URL.Path,
-			c.Writer.Status(),
+			status,
 			time.Since(start),
 		)
 	}

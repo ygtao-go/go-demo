@@ -136,7 +136,7 @@ handler.GenerateCode
   ▼
 service.GenerateCode(prompt) → repository.CallLLM("生成代码：" + prompt)
   │ ai_repository.CallLLM：
-  │   ① config 读取 AI_API_KEY / AI_ENDPOINT / AI_URL / AI_TIMEOUT（懒加载）
+  │   ① config 读取 AI_API_KEY / AI_MODEL / AI_URL / AI_TIMEOUT（懒加载；AI_MODEL 未配置时回退 AI_ENDPOINT）
   │   ② 构造 Chat Completions 请求体（system 提示词 + 用户 prompt，temperature=0.3）
   │   ③ context.WithTimeout + http.Client.Timeout（双层超时）
   │   ④ 发起 HTTP POST → 状态码/响应体/JSON 解析逐级错误处理
