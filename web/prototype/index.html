@@ -1,0 +1,392 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI鏅鸿兘鍔╂墜 - 璞嗗寘椋庢牸</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/element-plus/dist/index.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/element-plus/dist/index.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f7f8fa;color:#333;}
+    /* 甯冨眬 */
+    .layout-wrap{display:flex;height:100vh;overflow:hidden;}
+    .left-menu{width:240px;background:#ffffff;border-right:1px solid #e5e6eb;flex-shrink:0;}
+    .main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+    .header-top{height:60px;background:#fff;border-bottom:1px solid #e5e6eb;display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+    .content-wrap{flex:1;padding:20px;overflow:auto;}
+
+    /* 鑿滃崟 */
+    .logo-box{height:60px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #eee;}
+    .logo-text{font-size:18px;font-weight:bold;color:#1677ff;}
+    .el-menu-vertical-demo{border-right:none;}
+
+    /* 鑱婂ぉ瀹瑰櫒 璞嗗寘椋庢牸 */
+    .chat-box{max-width:900px;margin:0 auto;}
+    .item-input{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+    .item-ai{background:#f2f3f5;border-radius:12px;padding:16px;margin-bottom:16px;}
+    pre{white-space:pre-wrap;word-wrap:break-word;}
+    .submit-btn{background:#1677ff;border:none;border-radius:8px;padding:8px 16px;color:#fff;}
+    textarea{border-radius:8px !important;}
+
+    /* 绉诲姩绔€傞厤 */
+    @media (max-width:768px){
+      .left-menu{width:60px;}
+      .logo-text{display:none;}
+    }
+  </style>
+</head>
+<body>
+<div id="app" class="layout-wrap">
+  <!-- 宸︿晶鑿滃崟 -->
+  <div class="left-menu">
+    <div class="logo-box">
+      <span class="logo-text">AI鏅鸿兘鍔╂墜</span>
+    </div>
+    <el-menu
+      default-active="chat"
+      class="el-menu-vertical-demo"
+      @select="changePage"
+    >
+      <el-menu-item index="chat">
+        <span>AI瀵硅瘽</span>
+      </el-menu-item>
+      <el-menu-item index="codeGen">
+        <span>浠ｇ爜鐢熸垚</span>
+      </el-menu-item>
+      <el-menu-item index="codeExplain">
+        <span>浠ｇ爜瑙ｉ噴</span>
+      </el-menu-item>
+      <el-menu-item index="codeFix">
+        <span>浠ｇ爜淇</span>
+      </el-menu-item>
+      <el-menu-item index="codeOpt">
+        <span>浠ｇ爜浼樺寲</span>
+      </el-menu-item>
+      <el-menu-item index="admin">
+        <span>鐢ㄦ埛绠＄悊</span>
+      </el-menu-item>
+    </el-menu>
+  </div>
+
+  <!-- 鍙充晶涓诲尯鍩?-->
+  <div class="main-wrap">
+    <!-- 椤堕儴鏍?-->
+    <div class="header-top">
+      <div class="title">AI 鏅鸿兘寮€鍙戝姪鎵?/div>
+      <div class="user-info" v-if="isLogin">
+        <span>娆㈣繋锛歿{ userInfo.username }}</span>
+        <el-button text type="danger" @click="handleLogout">閫€鍑虹櫥褰?/el-button>
+      </div>
+    </div>
+
+    <!-- 鍐呭鍖?-->
+    <div class="content-wrap">
+      <!-- 鐧诲綍/娉ㄥ唽 -->
+      <div v-if="!isLogin" style="max-width:420px;margin:80px auto;background:#fff;padding:30px;border-radius:12px;">
+        <el-tabs v-model="loginTab">
+          <el-tab-pane label="鐧诲綍" name="login">
+            <el-form label-width="60px">
+              <el-form-item label="鐢ㄦ埛鍚?>
+                <el-input v-model="loginForm.username"></el-input>
+              </el-form-item>
+              <el-form-item label="瀵嗙爜">
+                <el-input v-model="loginForm.password" show-password></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="handleLogin" style="width:100%">鐧诲綍</el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+          <el-tab-pane label="娉ㄥ唽" name="reg">
+            <el-form label-width="60px">
+              <el-form-item label="鐢ㄦ埛鍚?>
+                <el-input v-model="regForm.username"></el-input>
+              </el-form-item>
+              <el-form-item label="瀵嗙爜">
+                <el-input v-model="regForm.password" show-password></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="success" @click="handleReg" style="width:100%">娉ㄥ唽</el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+
+
+      <!-- AI瀵硅瘽棣栭〉 璞嗗寘鑱婂ぉ鏍峰紡 -->
+      <div v-if="isLogin && page === 'chat'" class="chat-box">
+        <div style="text-align:center;margin:40px 0;">
+          <h2>浣犲ソ锛屾垜鏄疉I鏅鸿兘鍔╂墜</h2>
+          <p style="color:#999;">鍙互闂垜闂銆佸啓浠ｇ爜銆佹煡bug銆佸啓鏂囨。</p>
+        </div>
+        <div class="item-input">
+          <textarea v-model="askText" rows="4" placeholder="璇疯緭鍏ヤ綘瑕佹彁闂殑鍐呭..."></textarea>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="submit-btn" @click="chatSend">鍙戦€佹彁闂?/button>
+          </div>
+        </div>
+        <div v-if="chatReply" class="item-ai">
+          <strong>AI鍥炲锛?/strong>
+          <pre>{{ chatReply }}</pre>
+        </div>
+      </div>
+
+      <!-- 浠ｇ爜鐢熸垚 -->
+      <div v-if="isLogin && page === 'codeGen'" class="chat-box">
+        <div class="item-input">
+          <textarea v-model="prompt" rows="4" placeholder="鎻忚堪浣犳兂瑕佺敓鎴愮殑浠ｇ爜..."></textarea>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="submit-btn" @click="generateCode">鐢熸垚浠ｇ爜</button>
+          </div>
+        </div>
+        <div v-if="result1" class="item-ai">
+          <pre>{{ result1 }}</pre>
+        </div>
+      </div>
+
+      <!-- 浠ｇ爜瑙ｉ噴 -->
+      <div v-if="isLogin && page === 'codeExplain'" class="chat-box">
+        <div class="item-input">
+          <textarea v-model="codeExplain" rows="6" placeholder="绮樿创闇€瑕佽В閲婄殑浠ｇ爜"></textarea>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="submit-btn" @click="explainCode">瑙ｉ噴浠ｇ爜</button>
+          </div>
+        </div>
+        <div v-if="result2" class="item-ai">
+          <pre>{{ result2 }}</pre>
+        </div>
+      </div>
+
+      <!-- 浠ｇ爜淇 -->
+      <div v-if="isLogin && page === 'codeFix'" class="chat-box">
+        <div class="item-input">
+          <textarea v-model="codeFix" rows="6" placeholder="绮樿创鎶ラ敊/鏈夐棶棰樹唬鐮?></textarea>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="submit-btn" @click="fixCode">淇浠ｇ爜</button>
+          </div>
+        </div>
+        <div v-if="result3" class="item-ai">
+          <pre>{{ result3 }}</pre>
+        </div>
+      </div>
+
+      <!-- 浠ｇ爜浼樺寲 -->
+      <div v-if="isLogin && page === 'codeOpt'" class="chat-box">
+        <div class="item-input">
+          <textarea v-model="codeOpt" rows="6" placeholder="绮樿创闇€瑕佷紭鍖栫殑浠ｇ爜"></textarea>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="submit-btn" @click="optimizeCode">浼樺寲浠ｇ爜</button>
+          </div>
+        </div>
+        <div v-if="result4" class="item-ai">
+          <pre>{{ result4 }}</pre>
+        </div>
+      </div>
+
+      <!-- 鐢ㄦ埛绠＄悊 -->
+      <div v-if="isLogin && page === 'admin'">
+        <el-table :data="userList" border>
+          <el-table-column prop="id" label="ID" width="80"/>
+          <el-table-column prop="username" label="鐢ㄦ埛鍚?/>
+          <el-table-column label="鎿嶄綔" width="180">
+            <template #default="scope">
+              <el-button size="small" @click="openEdit(scope.row)">缂栬緫</el-button>
+              <el-button size="small" type="danger" @click="delUser(scope.row.id)">鍒犻櫎</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 缂栬緫寮圭獥 -->
+  <el-dialog v-model="editDialog" title="缂栬緫鐢ㄦ埛">
+    <el-input v-model="editForm.username"></el-input>
+    <template #footer>
+      <el-button @click="editDialog=false">鍙栨秷</el-button>
+      <el-button type="primary" @click="saveEdit">淇濆瓨</el-button>
+    </template>
+  </el-dialog>
+</div>
+
+<script>
+const { createApp } = Vue
+const app = createApp({
+  setup(){
+    // 鍏ㄥ眬鐘舵€?    const isLogin = Vue.ref(false)
+    const page = Vue.ref("chat")
+    const loginTab = Vue.ref("login")
+
+    // 鐧诲綍娉ㄥ唽
+    const loginForm = Vue.reactive({username:"",password:""})
+    const regForm = Vue.reactive({username:"",password:""})
+    const userInfo = Vue.ref({})
+
+    // AI杈撳叆
+    const askText = Vue.ref("")
+    const chatReply = Vue.ref("")
+
+    const prompt = Vue.ref("")
+    const codeExplain = Vue.ref("")
+    const codeFix = Vue.ref("")
+    const codeOpt = Vue.ref("")
+
+    const result1 = Vue.ref("")
+    const result2 = Vue.ref("")
+    const result3 = Vue.ref("")
+    const result4 = Vue.ref("")
+
+    // 鐢ㄦ埛绠＄悊
+    const userList = Vue.ref([])
+    const editDialog = Vue.ref(false)
+    const editForm = Vue.reactive({id:"",username:""})
+
+    // axios
+    const request = axios.create({
+      baseURL:"http://8.163.79.107:8080/api",
+      timeout:60000
+    })
+    request.interceptors.request.use(config=>{
+      let token = localStorage.getItem("token")
+      if(token) config.headers.Authorization = "Bearer "+token
+      return config
+    })
+
+    // 鍒囨崲椤甸潰
+    const changePage = (key)=>{
+      page.value = key
+    }
+
+    // 鐧诲綍
+    const handleLogin = async ()=>{
+      let res = await request.post("/user/login",loginForm)
+      if(res.data.code === 200 || res.data.code === 1){
+        localStorage.setItem("token",res.data.data)
+        isLogin.value = true
+        getUserInfo()
+        getUserListData()
+        ElMessage.success("鐧诲綍鎴愬姛")
+      }else{
+        ElMessage.error(res.data.msg||"鐧诲綍澶辫触")
+      }
+    }
+
+    // 娉ㄥ唽
+    const handleReg = async ()=>{
+      let res = await request.post("/user/register",regForm)
+      if(res.data.code === 200 || res.data.code === 1){
+        ElMessage.success("娉ㄥ唽鎴愬姛锛岃鐧诲綍")
+        loginTab.value = "login"
+      }else{
+        ElMessage.error(res.data.msg||"娉ㄥ唽澶辫触")
+      }
+    }
+
+    // 鑾峰彇涓汉淇℃伅
+    const getUserInfo = async ()=>{
+      let res = await request.get("/user/info")
+      if(res.data.code === 200 || res.data.code === 1){
+        userInfo.value = res.data.data
+      }
+    }
+
+    // 鐢ㄦ埛鍒楄〃
+    const getUserListData = async ()=>{
+      let res = await request.get("/user/list")
+      if(res.data.code === 200 || res.data.code === 1){
+        userList.value = res.data.data.list
+      }
+    }
+
+    // 閫€鍑?    const handleLogout = ()=>{
+      localStorage.removeItem("token")
+      isLogin.value = false
+      ElMessage.success("宸查€€鍑?)
+    }
+
+    // 閫氱敤AI璇锋眰
+    // 1.瀵硅瘽
+    const chatSend = async ()=>{
+      chatReply.value = ""
+      let res = await request.post("/ai/generate",{prompt:askText.value})
+      if(res.data.code === 200){
+        chatReply.value = res.data.data
+      }else{
+        chatReply.value = "璇锋眰澶辫触锛?+(res.data.msg||"")
+      }
+    }
+    // 2.浠ｇ爜鐢熸垚
+    const generateCode = async ()=>{
+      result1.value = ""
+      let res = await request.post("/ai/generate",{prompt:prompt.value})
+      if(res.data.code === 200) result1.value = res.data.data
+    }
+    // 3.瑙ｉ噴
+    const explainCode = async ()=>{
+      result2.value = ""
+      let res = await request.post("/ai/explain",{code:codeExplain.value})
+      if(res.data.code === 200) result2.value = res.data.data
+    }
+    // 4.淇
+    const fixCode = async ()=>{
+      result3.value = ""
+      let res = await request.post("/ai/fix",{code:codeFix.value})
+      if(res.data.code === 200) result3.value = res.data.data
+    }
+    // 5.浼樺寲
+    const optimizeCode = async ()=>{
+      result4.value = ""
+      let res = await request.post("/ai/optimize",{code:codeOpt.value})
+      if(res.data.code === 200) result4.value = res.data.data
+    }
+
+    // 缂栬緫鍒犻櫎鐢ㄦ埛
+    const openEdit = (row)=>{
+      editForm.id = row.id
+      editForm.username = row.username
+      editDialog.value = true
+    }
+    const saveEdit = async ()=>{
+      await request.post(`/user/edit/${editForm.id}`,{username:editForm.username})
+      editDialog.value = false
+      getUserListData()
+      ElMessage.success("淇敼鎴愬姛")
+    }
+    const delUser = async (id)=>{
+      await request.post(`/user/delete/${id}`)
+      getUserListData()
+      ElMessage.success("鍒犻櫎鎴愬姛")
+    }
+
+    // 鑷姩鐧诲綍
+    const autoLogin = ()=>{
+      if(localStorage.getItem("token")){
+        isLogin.value = true
+        getUserInfo()
+        getUserListData()
+      }
+    }
+    autoLogin()
+
+    return{
+      isLogin,page,loginTab,
+      loginForm,regForm,userInfo,
+      askText,chatReply,
+      prompt,codeExplain,codeFix,codeOpt,
+      result1,result2,result3,result4,
+      userList,editDialog,editForm,
+      changePage,handleLogin,handleReg,handleLogout,
+      chatSend,generateCode,explainCode,fixCode,optimizeCode,
+      openEdit,saveEdit,delUser
+    }
+  }
+})
+app.use(ElementPlus).mount("#app")
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "name": "go-admin-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "go-admin 管理系统前端（Vue3 + TypeScript + Vite + Element Plus + Pinia + Vue Router + Axios）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@types/markdown-it": "^14.1.2",
+    "axios": "^1.8.4",
+    "echarts": "^6.1.0",
+    "element-plus": "^2.9.7",
+    "markdown-it": "^15.0.0",
+    "monaco-editor": "^0.56.0",
+    "pinia": "^3.0.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "sass": "^1.85.1",
+    "typescript": "~5.7.3",
+    "vite": "^6.2.4",
+    "vue-tsc": "^2.2.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

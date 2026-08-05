@@ -1,0 +1,51 @@
+@use './variables' as *;
+
+// 全局 CSS 变量（供组件 scoped 样式引用）
+:root {
+  --sidebar-bg: #{$sidebar-bg};
+  --header-bg: #{$header-bg};
+  --page-bg: #{$page-bg};
+  --content-bg: #{$content-bg};
+}
+
+// 基础重置
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', Arial, sans-serif;
+  font-size: 14px;
+  color: $text-primary;
+  background-color: $page-bg;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+// 通用页面容器
+.page-container {
+  padding: 16px;
+  background-color: $content-bg;
+  border-radius: 4px;
+  min-height: 100%;
+}
+
+// 滚动条
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}

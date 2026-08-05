@@ -1,0 +1,23 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+
+# 环境变量
+# 安全约定：与 go-admin 一致，.env* 一律禁止入库（CI 安全门禁会拦截 git 跟踪的 .env*）
+# 本地覆盖请使用 .env.local（自动被忽略）
+.env
+.env.*
+
+# 日志
+*.log
+npm-debug.log*
+
+# 编辑器 / 系统
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.local
